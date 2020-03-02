@@ -1,160 +1,97 @@
 
 # Module 2 Final Project
 
+Student name: John Cho
+Student pace: full time online
+Scheduled project review date/time: 2/25/20
+Instructor name: Rafael Carrasco
+Blog post URL: https://medium.com/@johnnyboyee/my-foray-into-data-science-continued-98bcfba76316
 
 ## Introduction
 
-In this lesson, we'll review all of the guidelines and specifications for the final project for Module 2.
+For this project, we worked with the King County House Sales dataset, which has been modified to make it a bit more fun and challenging.  The dataset can be found in the file `"kc_house_data.csv"`, in this repo.
 
-## Objectives
-You will be able to:
-* Describe all required aspects of the final project for Module 2
-* Describe all required deliverables
-* Describe what constitutes a successful project
+The description of the column names can be found in the column_names.md file in this repository. As with most real world data sets, the column names were not perfectly described, so a little research and best judgment had to be applied.
+
+Tasks involved cleaning, exploring and modeling this dataset with a multivariate linear regression to predict the sale price of houses as accurately as possible.
 
 ## Final Project Summary
 
-Another module down--you're half way there!
+There are 2 notebook files:
+1. student_Clean_1of2.ipynb - Data Cleaning
+2. student_EDA_2of2.ipynb - Exploratory Data Analysis and Regression Model
 
-![awesome](https://raw.githubusercontent.com/learn-co-curriculum/dsc-mod-2-project-v2-1/master/halfway-there.gif)
+## Data Cleaning
 
-All that remains in Module 2 is to put our newfound data science skills to use with a final project! You should expect this project to take between 20 and 25 hours of solid, focused effort. If you're done way quicker, go back and dig in deeper or try some of the optional "level up" suggestions. If you're worried that you're going to get to 30 hrs and still not even have the data imported, reach out to an instructor in Slack ASAP to get some help!
+### Invalid / null values, non-useful columns
 
-## The Dataset
+- Initial dataset included 21,597 rows (properties) and 21 columns (target/dependent variable and features/independent variables).
+- Null values: 'waterfront' (2376), 'view' (63), 'yr_renovated' (3842).
+- Dropped 'id' column by making it the index.
+- Confirmed 177 'id' duplicates were subsequent sales of the same property: 176 properties were sold twice and 1 sold 3 times.
+- Dropped 'waterfront' column along with 146 waterfront properties.
+- Dropped 'view' column due to: description did not make sense with populated values, over 90% of dataset had a value of zero/null, distribution was very non-normal and weak price correlation.
+- Dropped 'yr_renovated' column due to almost 97% containing zero/null values.
+- Discovered 'sqft_basement' had 450 '?' values which were filled in with the difference between 'sqft_living' and 'sqft_above'.. confirmed entire dataset had no discrepancies with sqft_basement + sqft_above = sqft_living.
 
-For this project, you'll be working with the King County House Sales dataset. We've modified the dataset to make it a bit more fun and challenging.  The dataset can be found in the file `"kc_house_data.csv"`, in this repo.
+### Dropping outliers
 
-The description of the column names can be found in the column_names.md file in this repository. As with most real world data sets, the column names are not perfectly described, so you'll have to do some research or use your best judgment if you have questions relating to what the data means.
+- Price outliers > mean+3std ($1.56M): 404
+- Sqft_lot > 650k: 9
+- Sqft_lot15 > 400k: 6
+- Bedrooms > 10: 2
+- Bathrooms > 7: 1
+- Sqft_living > 7000: 4
 
-You'll clean, explore, and model this dataset with a multivariate linear regression to predict the sale price of houses as accurately as possible.
+## EDA
 
-## The Deliverables
+### Question 1: Are the TIME related features helpful in predicting our target (price) in this project?
+- Our 3 time related features (date sold, year built, year renovated) may not be as helpful as they seem at first glance. Since we did not have prior sales data, we could not compare sales price differences from one point in time to another. In addition, ~3% of the properties were renovated but we do not know which features might have changed.
+- Our range of selling dates is very short, ~1 year: 5/2/14 - 5/27/15
+- Dropped the 'date' and 'yr_built' columns, replacing them with a new 'age' column (sold 'date' - 'yr_built').
+- **Note: fun figuring out method to get 'year fractions' since the sell date column had exact day/month/year - my method was not perfectly precise as when adding the 'fractional year day' I simply used day/365 instead of day/(exact # of days in month).
+- **Easter egg: 11 properties mistakenly claimed to be built in 2015 yet sold in 2014.**
+- Curiosity check: 'newer' (built or renovated since 2000) homes had an average higher price of almost $125k.
 
-For online students, there will be five deliverables for this project (Note: On-campus students may have different requirements, please speak with your instructor):
+### Question 2: Should we be concerned about multiple sales for the same property in such a short timeframe?
+- Short answer: yes! Out of the 176 properties sold more than once, the average price difference (profit) was $135k.
+- These houseflippers have created 'bad' data since these properties have identical features and significantly different selling prices.
+- **Easter egg: 2014 was the mode for 'yr_renovated', or the most popular renovation year.**
+- All 'flipped' properties were combined into a single row with its mean for 'price' and 'age'. (177 rows dropped)
 
-1. A well documented **Jupyter Notebook** containing any code you've written for this project and comments explaining it. This work will need to be pushed to your GitHub repository in order to submit your project.  
-2. An organized **README.md** file in the GitHub repository that describes the contents of the repository. This file should be the source of information for navigating through the repository.
-3. A short **Keynote/PowerPoint/Google Slides presentation** (delivered as a PDF export) giving a high-level overview of your methodology and recommendations for non-technical stakeholders. Make sure to also add and commit this pdf of your non-technical presentation to your repository with a file name of presentation.pdf.
-4. **[A Blog Post](https://github.com/learn-co-curriculum/dsc-welcome-blogging-v2-1)**	
-5. A **Video Walkthrough** of your non-technical presentation. Some common video recording tools used are Zoom, Quicktime, and Nimbus. After you record your presentation, publish it on a service like YouTube or Google Drive, you will need a link to the video to submit your project.
+### Question 3: Should we be concerned about urban/rural properties and their locations?
+- Out of the 3 location variables (latitude, longitude, zipcode) we chose to only use latitude.
+- Since many of the sqft (living, above, basement, lot, lot15, living15) exhibit strong multicollinearity, dropping all but 1 or 2 would be necessary. See if we can get other insights that can be used instead.
+- Basements: since 61% of homes have no basement (value=0) and the value is contained in sqft_living, we chose to drop the column. Homes with a basement have a higher selling price by ~$100k more on average; created a basement yes/no (1/0) column instead.
+- Urban vs rural: determined optimal threshold ratio of 0.32 (living / lot) or roughly 1:2 (sqft_living:sqft_lot) where average price difference was the greatest between the 2 groups. Based on assumption that an equivalent featured 'urban' home would sell for significantly less than its 'rural' brother.
+- Dropped 'sqft_lot/15' columns and created urban (1/0) column where >=0.32 ratio was considered 'urban' and <0.32 considered 'rural'. Observed average price difference of $135 between both groups.
+- **Note: The significantly higher averages for 'rural' lot square footage became very apparent once these groups were separated. Mean and std were 3-4x and 15-20x greater, respectively. Highest sqft_lot value was 40x greater (even after feature outliers dropped).**
 
-Note: On-campus students may have different requirements, please speak with your instructor.
+### Regression Model: Feature Selection
+- Round 1: dropped condition, age, sqft_above.
+- Round 2: log transformed sqft_living/15, bedrooms, grade and used one hot encoding for floors. Performed min-max scaling on lat, mean normalization on sqft_living/15, grade, bathrooms. Dropped sqft_living15 and bathrooms due to multicollinearity.
+- Round 3: dropped bedrooms, grade.
+- Final model: sqft_living, lat, floors (bin), urban, basement.
 
-### Jupyter Notebook Must-Haves
-
-For this project, your Jupyter Notebook should meet the following specifications:
-
-#### Organization/Code Cleanliness
-
-* The notebook should be well organized, easy to follow,  and code should be commented where appropriate.  
-    * Level Up: The notebook contains well-formatted, professional looking markdown cells explaining any substantial code.  All functions have docstrings that act as professional-quality documentation
-* The notebook is written for technical audiences with a way to both understand your approach and reproduce your results. The target audience for this deliverable is other data scientists looking to validate your findings.
-
-#### Visualizations & EDA
-
-* Your project contains at least 4 meaningful data visualizations, with corresponding interpretations. All visualizations are well labeled with axes labels, a title, and a legend (when appropriate)  
-* You pose at least 3 meaningful questions and answer them through EDA.  These questions should be well labeled and easy to identify inside the notebook.
-    * **Level Up**: Each question is clearly answered with a visualization that makes the answer easy to understand.   
-* Your notebook should contain 1 - 2 paragraphs briefly explaining your approach to this project.
-
-#### Model Quality/Approach
-
-* Your model should not include any predictors with p-values greater than .05.  
-* Your notebook shows an iterative approach to modeling, and details the parameters and results of the model at each iteration.  
-    * **Level Up**: Whenever necessary, you briefly explain the changes made from one iteration to the next, and why you made these choices.  
-* You provide at least 1 paragraph explaining your final model.   
-* You pick at least 3 coefficients from your final model and explain their impact on the price of a house in this dataset.   
-
-
-### Non-Technical Presentation Must-Haves
-
-Another deliverable should be a Keynote, PowerPoint or Google Slides presentation delivered as a pdf file in your fork of this repository with the file name of `presentation.pdf` detailing the results of your project.  Your target audience is non-technical people interested in using your findings to maximize their profit when selling their home.
-
-Your presentation should:
-
-* Contain between 5 - 10 professional-quality slides.  
-    * **Level Up**: The slides should use visualizations whenever possible, and avoid walls of text.
-* Take no more than 5 minutes to present.   
-* Avoid technical jargon and explain the results in a clear, actionable way for non-technical audiences.   
-
-**_Based on the results of your models, your presentation should discuss at least two concrete features that highly influence housing prices._**
-
-### Blog Post Must-Haves
-
-Refer back to the [Blogging Guidelines](https://github.com/learn-co-curriculum/dsc-welcome-blogging-v2-1) for the technical requirements and blog ideas.
-
-
-## The Process 
-The process for this project is identical to the process you followed for your module 1 project. We specified it again below as a refresher.
-(Note: On-campus students may have different processes, please speak with your instructor)
-
-### 1. Getting Started
-
-Please start by reviewing this document. If you have any questions, please ask them in Slack ASAP so (a) we can answer the questions and (b) so we can update this repository to make it clearer.
-
-Be sure to let the instructor team know when you’ve started working on a project, either by reaching out over Slack or, if you are in a full-time or part-time cohort, by connecting with your Cohort Lead in your weekly 1:1. If you’re not sure who to reach out to, post in the #online-ds-sp-000 channel in Slack.
-
-Once you're done with this module, please start on the project. Do that by forking this repository, cloning it locally, and working in the student.ipynb file. Make sure to also add and commit a pdf of your presentation to the repository with a file name of `presentation.pdf`.
-
-### 2. The Project Review
-
-_Note: On-campus students may have different review processes, please speak with your instructor._
-
-> **When you start on the project, please also reach out to an instructor immediately to schedule your project review** (if you're not sure who to schedule with, please ask in Slack!)
-
-#### What to expect from the Project Review
-
-Project reviews are focused on preparing you for technical interviews. Treat project reviews as if they were technical interviews, in both attitude and technical presentation *(sometimes technical interviews will feel arbitrary or unfair - if you want to get the job, commenting on that is seldom a good choice)*.
-
-The project review is comprised of a 45 minute 1:1 session with one of the instructors. During your project review, be prepared to:
-
-#### 1. Deliver your PDF presentation to a non-technical stakeholder.
-In this phase of the review (~10 mins) your instructor will play the part of a non-technical stakeholder that you are presenting your findings to. The presentation  should not exceed 5 minutes, giving the "stakeholder" 5 minutes to ask questions.
-
-In the first half of the presentation (2-3 mins), you should summarize your methodology in a way that will be comprehensible to someone with no background in data science and that will increase their confidence in you and your findings. In the second half (the remaining 2-3 mins) you should summarize your findings and be ready to answer a couple of non-technical questions from the audience. The questions might relate to technical topics (sampling bias, confidence, etc) but will be asked in a non-technical way and need to be answered in a way that does not assume a background in statistics or machine learning. You can assume a smart, business stakeholder, with a non-quantitative college degree.
-
-#### 2. Go through the Jupyter Notebook, answering questions about how you made certain decisions. Be ready to explain things like:
-    * "How did you pick the question(s) that you did?"
-    * "Why are these questions important from a business perspective?"
-    * "How did you decide on the data cleaning options you performed?"
-    * "Why did you choose a given method or library?"
-    * "Why did you select those visualizations and what did you learn from each of them?"
-    * "Why did you pick those features as predictors?"
-    * "How would you interpret the results?"
-    * "How confident are you in the predictive quality of the results?"
-    * "What are some of the things that could cause the results to be wrong?"
-
-Think of the first phase of the review (~30 mins) as a technical boss reviewing your work and asking questions about it before green-lighting you to present to the business team. You should practice using the appropriate technical vocabulary to explain yourself. Don't be surprised if the instructor jumps around or sometimes cuts you off - there is a lot of ground to cover, so that may happen.
-
-If any requirements are missing or if significant gaps in understanding are uncovered, be prepared to do one or all of the following:
-* Perform additional data cleanup, visualization, feature selection, modeling and/or model validation
-* Submit an improved version
-* Meet again for another Project Review
-
-What won't happen:
-* You won't be yelled at, belittled, or scolded
-* You won't be put on the spot without support
-* There's nothing you can do to instantly fail or blow it
-
-**Please note: We need to receive the URL of your repository at least 24 hours before and please have the project finished at least 3 hours before your review so we can look at your materials in advance.**
-
-
-## Submitting your Project
-
- You’re almost done! In order to submit your project for review, include the following links to your work in the corresponding fields on the right-hand side of Learn.
-
- 1. **GitHub Repo:** Now that you’ve completed your project in Jupyter Notebooks, push your work to GitHub and paste that link to the right. (If you need help doing so, review the resources [here](https://docs.google.com/spreadsheets/d/1CNGDhjcQZDRx2sWByd2v-mgUOjy13Cd_hQYVXPuzEDE/edit#gid=0).)
-_Reminder: Make sure to also add and commit a pdf of your non-technical presentation to the repository with a file name of presentation.pdf._
-2. **Blog Post:** Include a link to your blog post.
-3. **Record Walkthrough:** Include a link to your video walkthrough.
-
- Hit "I'm done" to wrap it up. You will receive an email in order to schedule your review with your instructor.
- 
- 
-## Grading Rubric
-Online students can find a PDF of the grading rubric for the project [here](https://github.com/learn-co-curriculum/dsc-v2-mod2-final-project/blob/master/module2_project_rubric.pdf). On-campus students may have different review processes, please speak with your instructor.
+### Model Validation
+- Using train-test split, it appears the standard 60/40 was appropriate to achieve the lowest mean squared errors.
+- Average price prediction error of $170k with 89.5% attributable to our model.
+- Pretty good Skew (0.716), Kurtosis (4.804) and Condition No. (8.81) 
+- Q-Q plot shows decent normality (long right tail) and scatterplot of residuals demonstrate homoscedasticity (maybe?)
+- Updated model by dropping more price outliers (983 properties > $1M) and model improved dramatically
+- Q-Q plot looks almost perfect and residuals appear homoscedastic with a negative slope, OLS regression results indicate R2 = 91.6%, improved Skew (0.102), Kurtosis (3.340) and Condition No. (8.89).
 
 
 ## Summary
 
-The end of module projects and project reviews are a critical part of the program. They give you a chance to both bring together all the skills you've learned into realistic projects and to practice key "business judgement" and communication skills that you otherwise might not get as much practice with.
+In closing, what we have learned over the course of this project demonstrates the importance of:
+* Linear relationships between feature and target variables
+* Distribution normality of all variables
+* Having lots of datapoints representing low, mid, high values; convert to a binary feature if lacking
+* How regression models deal poorly with features representing continuous data containing too many zero values
+* How data scientists can 'manipulate' data to achieve more desirable results
+
+## Future Work
+* Create 3 separate regression models for urban, rural, waterfront. Separating properties into groups with more similar feature patterns should yield more accurate price predictions.
+* Possibly define a 4th category for properties with HUGE lots. These will often be farms or possibly large land sales where the home features would have even less of an effect on final price. (ie. 2k sqft home with a 1M+ sqft lot?)
+* Dive deeper into geographical features. Create a column indicative of how strong its location is to demand, which has the greatest effect on housing price, by far.
